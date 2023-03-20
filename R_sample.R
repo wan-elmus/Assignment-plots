@@ -72,15 +72,75 @@ for (feature in num_features) {
 }
 
 # creating a function to identify outliers and replace them with NAs
+# replace_outliers <- function(x, multiplier=1.5) {
+#   q1 <- quantile(x, 0.25, na.rm = TRUE)
+#   q3 <- quantile(x, 0.75, na.rm = TRUE)
+#   iqr <- q3 - q1
+#   upper <- q3 + multiplier * iqr
+#   lower <- q1 - multiplier * iqr
+#   x[x < lower | x > upper] <- NA
+#   return(x)
+# }
+
+# replace_outliers <- function(x, multiplier=1.5) {
+#   if(all(is.na(x))) {
+#     return(x)
+#   }
+#   q1 <- quantile(x, 0.25, na.rm = TRUE)
+#   q3 <- quantile(x, 0.75, na.rm = TRUE)
+#   iqr <- q3 - q1
+#   upper <- q3 + multiplier * iqr
+#   lower <- q1 - multiplier * iqr
+#   x[x < lower | x > upper] <- NA
+#   return(x)
+# }
+
+# replace_outliers <- function(x) {
+#   qnt <- quantile(as.numeric(x), probs = c(.25, .75), na.rm = TRUE)
+#   H <- 1.5 * IQR(as.numeric(x), na.rm = TRUE)
+#   x[x < (qnt[1] - H)] <- NA
+#   x[x > (qnt[2] + H)] <- NA
+#   x[is.na(x)] <- median(as.numeric(x), na.rm = TRUE)
+#   return(x)
+# }
+
 replace_outliers <- function(x, multiplier=1.5) {
+  if(all(is.na(x))) {
+    return(x)
+  }
   q1 <- quantile(x, 0.25, na.rm = TRUE)
   q3 <- quantile(x, 0.75, na.rm = TRUE)
   iqr <- q3 - q1
   upper <- q3 + multiplier * iqr
   lower <- q1 - multiplier * iqr
   x[x < lower | x > upper] <- NA
+  
+  # added lines from the second function
+  H <- 1.5 * iqr
+  x[x < (q1 - H)] <- NA
+  x[x > (q3 + H)] <- NA
+  x[is.na(x)] <- median(x, na.rm = TRUE)
+  
   return(x)
 }
+
+outlier_check <- function(x, multiplier=1.5) {
+  q1 <- quantile(x, 0.25, na.rm = TRUE)
+  q3 <- quantile(x, 0.75, na.rm = TRUE)
+  iqr <- q3 - q1
+  upper <- q3 + multiplier * iqr
+  lower <- q1 - multiplier * iqr
+  outliers <- x < lower | x > upper
+  return(outliers)
+}
+
+outliers <- outlier_check(mydata$DYNRiska.score)
+sum(outliers)
+
+if (sum(!is.na(mydata$DYNRiska.score)) > 0) {
+  mydata$DYNRiska.score <- replace_outliers(mydata$DYNRiska.score)
+}
+
 
 # apply the function to each continuous variable
 
