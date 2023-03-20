@@ -1,6 +1,8 @@
 # You may need to change/include the path of your working directory
+
 library(dplyr)
 library(e1071)
+
 
 dat=read.csv("MLData2023.csv", stringsAsFactors = TRUE)
 # Separate samples of non-malicious and malicious events
@@ -11,7 +13,8 @@ dat.class1 <- dat %>% filter(Class == 1) # malicious
 set.seed(10550239)
 rand.class0 <- dat.class0[sample(1:nrow(dat.class0), size = 300, replace = FALSE),]
 rand.class1 <- dat.class1[sample(1:nrow(dat.class1), size = 300, replace = FALSE),]
-# Your sub-sample of 600 observations
+
+# sub-sample of 600 observations
 mydata <- rbind(rand.class0, rand.class1)
 dim(mydata) # Check the dimension of your sub-sample
 
@@ -28,11 +31,6 @@ for (feature in cat_features) {
   cat("\n")
   flush.console()
 }
-
-
-# install.packages("e1071")
-# library(e1071)
-
 
 num_features <- c("Assembled.Payload.Size", "DYNRiska.score", "Response.Size", "Source.Ping.Time", "Connection.State", "Server.Response.Packet.Time", "Packet.Size", "Packet.TTL", "Source.IP.Concurrent.Connection", "Class")
 
@@ -64,23 +62,53 @@ for (feature in num_features) {
 }
 
 # creating a function to identify outliers and replace them with NAs
+
 replace_outliers <- function(x, multiplier=1.5) {
+  if(all(is.na(x))) {
+    return(x)
+  }
   q1 <- quantile(x, 0.25, na.rm = TRUE)
   q3 <- quantile(x, 0.75, na.rm = TRUE)
   iqr <- q3 - q1
   upper <- q3 + multiplier * iqr
   lower <- q1 - multiplier * iqr
   x[x < lower | x > upper] <- NA
+  
+  # added lines from the second function
+  H <- 1.5 * iqr
+  x[x < (q1 - H)] <- NA
+  x[x > (q3 + H)] <- NA
+  x[is.na(x)] <- median(x, na.rm = TRUE)
+  
   return(x)
 }
 
+outlier_check <- function(x, multiplier=1.5) {
+  q1 <- quantile(x, 0.25, na.rm = TRUE)
+  q3 <- quantile(x, 0.75, na.rm = TRUE)
+  iqr <- q3 - q1
+  upper <- q3 + multiplier * iqr
+  lower <- q1 - multiplier * iqr
+  outliers <- x < lower | x > upper
+  return(outliers)
+}
+
+outliers <- outlier_check(mydata$DYNRiska.score)
+sum(outliers)
+
+if (sum(!is.na(mydata$DYNRiska.score)) > 0) {
+  mydata$DYNRiska.score <- replace_outliers(mydata$DYNRiska.score)
+}
+
+
 # apply the function to each continuous variable
-mydata$Assembled.Playload.Size <- replace_outliers(mydata$Assembled.Playload.Size)
+
+mydata$Assembled.Payload.Size <- replace_outliers(mydata$Assembled.Payload.Size)
 mydata$DYNRiska.score <- replace_outliers(mydata$DYNRiska.score)
 mydata$Response.Size <- replace_outliers(mydata$Response.Size)
 mydata$Source.Ping.Time <- replace_outliers(mydata$Source.Ping.Time)
-mydata$Connection.State=replace_outliers(mydata$Connection.State)
-mydata$Server.Response.Packet.Time=replace_outliers(mydata$Server.Response.Packet.Time)
+mydata$Connection.State <- replace_outliers(mydata$Connection.State)
+mydata$Server.Response.Packet.Time <- replace_outliers(mydata$Server.Response.Packet.Time)
 mydata$Packet.Size=replace_outliers(mydata$Packet.Size)
 mydata$Packet.TTL=replace_outliers(mydata$Packet.TTL)
 mydata$Source.IP.Concurrent.Connection=replace_outliers(mydata$Source.IP.Concurrent.Connection)
