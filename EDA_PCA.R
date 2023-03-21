@@ -4,8 +4,8 @@ library(dplyr)
 library(e1071)
 library(ggplot2)
 
-
 dat=read.csv("MLData2023.csv", stringsAsFactors = TRUE)
+
 # Separate samples of non-malicious and malicious events
 dat.class0 <- dat %>% filter(Class == 0) # non-malicious
 dat.class1 <- dat %>% filter(Class == 1) # malicious
@@ -63,8 +63,19 @@ for (feature in num_features) {
   }
 }
 
-# creating a function to identify outliers and replace them with NAs
+# Converting the columns to numeric
+mydata$Assembled.Payload.Size <- as.numeric(mydata$Assembled.Payload.Size)
+mydata$DYNRiskA.Score <- as.numeric(mydata$DYNRiskA.Score)
+mydata$Response.Size <- as.numeric(mydata$Response.Size)
+mydata$Source.Ping.Time <- as.numeric(mydata$Source.Ping.Time)
+mydata$Connection.State <- as.numeric(mydata$Connection.State)
+mydata$Server.Response.Packet.Time <- as.numeric(mydata$Server.Response.Packet.Time)
+mydata$Packet.Size <- as.numeric(mydata$Packet.Size)
+mydata$Packet.TTL <- as.numeric(mydata$Packet.TTL)
+mydata$Source.IP.Concurrent.Connection <- as.numeric(mydata$Source.IP.Concurrent.Connection)
+mydata$Class <- as.numeric(mydata$Class)
 
+# creating a function to identify outliers and replace them with NAs
 replace_outliers <- function(x, multiplier=1.5) {
   if(all(is.na(x))) {
     return(x)
@@ -102,7 +113,9 @@ pca <- prcomp(mydata[num_features], center = TRUE, scale. = TRUE)
 loadings <- pca$rotation
 scores <- pca$x
 
+
 ggplot(data = data.frame(scores[,1:2], Class = as.factor(mydata$Class))) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1, margin = margin(t = 0, r = 5, b = 0, l = 5)))+
   geom_point(aes(x = PC1, y = PC2, col = Class), size = 2.5) +
   geom_hline(yintercept = 0, linetype = "dashed") + 
   geom_vline(xintercept = 0, linetype = "dashed") + 
@@ -116,8 +129,7 @@ ggplot(data = data.frame(scores[,1:2], Class = as.factor(mydata$Class))) +
 
 
 if (sum(!is.na(mydata$DYNRiskA.Score)) > 0) {
-mydata$DYNRiskA.Score <- replace_outliers(mydata$DYNRiskA.Score, multiplier = 1.5) #still working on it
-  # mydata$DYNRiska.score <- replace_outliers(mydata$DYNRiska.score)
+mydata$DYNRiskA.Score <- replace_outliers(mydata$DYNRiskA.Score, multiplier = 1.5)
 }
 
 # apply the function to each continuous variable
@@ -132,7 +144,3 @@ mydata$Packet.Size=replace_outliers(mydata$Packet.Size)
 mydata$Packet.TTL=replace_outliers(mydata$Packet.TTL)
 mydata$Source.IP.Concurrent.Connection=replace_outliers(mydata$Source.IP.Concurrent.Connection)
 mydata$Class=replace_outliers(mydata$Class)
-
-
-
-
