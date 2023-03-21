@@ -33,9 +33,7 @@ for (feature in cat_features) {
   flush.console()
 }
 
-# num_features <- c("Assembled.Payload.Size", "DYNRiska.score", "Response.Size", "Source.Ping.Time", "Connection.State", "Server.Response.Packet.Time", "Packet.Size", "Packet.TTL", "Source.IP.Concurrent.Connection", "Class")
-
-num_features <- c("Assembled.Payload.Size", "DYNRiska.score", "Response.Size", "Source.Ping.Time", "Connection.State", "Server.Response.Packet.Time", "Packet.Size", "Packet.TTL", "Source.IP.Concurrent.Connection", "Class")
+num_features <- c("Assembled.Payload.Size", "DYNRiskA.Score", "Response.Size", "Source.Ping.Time", "Connection.State", "Server.Response.Packet.Time", "Packet.Size", "Packet.TTL", "Source.IP.Concurrent.Connection", "Class")
 
 
 for (feature in num_features) {
@@ -77,8 +75,6 @@ replace_outliers <- function(x, multiplier=1.5) {
   upper <- q3 + multiplier * iqr
   lower <- q1 - multiplier * iqr
   x[x < lower | x > upper] <- NA
-  
-  # added lines from the second function
   H <- 1.5 * iqr
   x[x < (q1 - H)] <- NA
   x[x > (q3 + H)] <- NA
@@ -100,13 +96,6 @@ outlier_check <- function(x, multiplier=1.5) {
 outliers <- outlier_check(mydata$DYNRiska.score)
 sum(outliers)
 
-library(ggplot2)
-# ggplot(mydata, aes(x = DYNRiska.score)) + 
-#   geom_density(fill = "#69b3a2", alpha = 0.6) + 
-#   theme_minimal() + 
-#   ggtitle("Density plot of DYNRiska.score") +
-#   xlab("DYNRiska.score") + 
-#   ylab("Density")
 
 pca <- prcomp(mydata[num_features], center = TRUE, scale. = TRUE)
 
@@ -126,15 +115,15 @@ ggplot(data = data.frame(scores[,1:2], Class = as.factor(mydata$Class))) +
 
 
 
-if (sum(!is.na(mydata$DYNRiska.score)) > 0) {
-mydata$DYNRiska.score <- replace_outliers(mydata$DYNRiska.score, multiplier = 1.5)
-#   mydata$DYNRiska.score <- replace_outliers(mydata$DYNRiska.score)
+if (sum(!is.na(mydata$DYNRiskA.Score)) > 0) {
+mydata$DYNRiskA.Score <- replace_outliers(mydata$DYNRiskA.Score, multiplier = 1.5) #still working on it
+  # mydata$DYNRiska.score <- replace_outliers(mydata$DYNRiska.score)
 }
 
 # apply the function to each continuous variable
 
 mydata$Assembled.Payload.Size <- replace_outliers(mydata$Assembled.Payload.Size)
-mydata$DYNRiska.score <- replace_outliers(mydata$DYNRiska.score)
+mydata$DYNRiskA.Score <- replace_outliers(mydata$DYNRiskA.Score)
 mydata$Response.Size <- replace_outliers(mydata$Response.Size)
 mydata$Source.Ping.Time <- replace_outliers(mydata$Source.Ping.Time)
 mydata$Connection.State <- replace_outliers(mydata$Connection.State)
@@ -145,26 +134,5 @@ mydata$Source.IP.Concurrent.Connection=replace_outliers(mydata$Source.IP.Concurr
 mydata$Class=replace_outliers(mydata$Class)
 
 
-# install.packages("ggplot2")
-# library(ggplot2)
-
-# num_features <- c("Assembled.Payload.Size", "DYNRiska.score", "Response.Size", "Source.Ping.Time", "Connection.State", "Server.Response.Packet.Time", "Packet.Size", "Packet.TTL", "Source.IP.Concurrent.Connection", "Class")
-# mydata[num_features] <- scale(mydata[num_features])
-
-# pca <- prcomp(mydata[num_features], center = TRUE, scale. = TRUE)
-
-# loadings <- pca$rotation
-# scores <- pca$x
-
-# ggplot(data = data.frame(scores[,1:2], Class = as.factor(mydata$Class))) + 
-#   geom_point(aes(x = PC1, y = PC2, col = Class), size = 2.5) +
-#   geom_hline(yintercept = 0, linetype = "dashed") + 
-#   geom_vline(xintercept = 0, linetype = "dashed") + 
-#   geom_text(data = as.data.frame(loadings), aes(x = PC1, y = PC2, label = rownames(loadings)), color = "blue", size = 3.5) + 
-#   geom_segment(data = as.data.frame(loadings), aes(x = 0, y = 0, xend = PC1, yend = PC2), arrow = arrow(length = unit(0.2, "cm")), color = "blue") + 
-#   theme_bw() + 
-#   xlab(paste0("PC1 (", round(pca$sdev[1]/sum(pca$sdev)*100, 1), "%)")) + 
-#   ylab(paste0("PC2 (", round(pca$sdev[2]/sum(pca$sdev)*100, 1), "%)")) + 
-#   ggtitle("Biplot of PCA Loadings and Scores")
 
 
