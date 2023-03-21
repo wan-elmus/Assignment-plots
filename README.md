@@ -1,5 +1,7 @@
 ## Brief explanation
 
+**Note:** *EDA_PCA.R is the working file, it implements everything*
+
 This program performs exploratory data analysis (EDA) on a dataset named "mydata". The dataset is loaded from a CSV file named "MLData2023.csv" that is assumed to be in the current working directory. The data are split into two classes (Class 0 and Class 1), and 300 samples are randomly selected from each class to create a sub-sample of 600 observations.
 
 The code then provides summary statistics and graphical representations of the data. It prints the following information for each categorical feature in the dataset:
