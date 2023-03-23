@@ -24,14 +24,19 @@ str(mydata)
 cat_features=c("IPV6.Traffic", "Operating.System", "Connection.State", "Ingress.Router")
 for (feature in cat_features) {
   cat_table <- table(mydata[[feature]], useNA = "ifany")
+  cat_table <- cat_table[order(-cat_table)] # sort the table in descending order
   cat_perc <- prop.table(cat_table) * 100
-  cat_summary <- data.frame(Category = names(cat_table), N = as.numeric(cat_table), Percent = round(cat_perc, 1))
+  cat_summary <- data.frame(
+    Category = names(cat_table),
+    N = as.numeric(cat_table),
+    Percent = paste0(round(cat_perc), "%"))
   rownames(cat_summary) <- NULL
   cat("Categorical Feature:", feature, "\n")
   print(cat_summary)
   cat("\n")
   flush.console()
 }
+
 
 num_features <- c("Assembled.Payload.Size", "DYNRiskA.Score", "Response.Size", "Source.Ping.Time", "Connection.State", "Server.Response.Packet.Time", "Packet.Size", "Packet.TTL", "Source.IP.Concurrent.Connection", "Class")
 
@@ -125,8 +130,6 @@ ggplot(data = data.frame(scores[,1:2], Class = as.factor(mydata$Class))) +
   xlab(paste0("PC1 (", round(pca$sdev[1]/sum(pca$sdev)*100, 1), "%)")) + 
   ylab(paste0("PC2 (", round(pca$sdev[2]/sum(pca$sdev)*100, 1), "%)")) + 
   ggtitle("Biplot of PCA Loadings and Scores")
-
-
 
 if (sum(!is.na(mydata$DYNRiskA.Score)) > 0) {
 mydata$DYNRiskA.Score <- replace_outliers(mydata$DYNRiskA.Score, multiplier = 1.5)
