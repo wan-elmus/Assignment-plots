@@ -109,8 +109,8 @@ outlier_check <- function(x, multiplier=1.5) {
   return(outliers)
 }
 
-outliers <- outlier_check(mydata$DYNRiska.score)
-sum(outliers)
+# outliers <- outlier_check(mydata$DYNRiskA.Score)
+# sum(outliers)
 
 
 pca <- prcomp(mydata[num_features], center = TRUE, scale. = TRUE)
