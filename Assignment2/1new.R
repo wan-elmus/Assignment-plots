@@ -1,4 +1,5 @@
 
+
 # Load required packages
 library(dplyr)
 library(forcats)
@@ -38,32 +39,14 @@ print(missing_values)
 # Select only the complete cases and name the cleaned dataset as MLData2023_cleaned
 MLData2023_cleaned <- na.omit(MLData2023_filtered)
 
-# # Convert characters to numeric and remove NAs
-# MLData2023_cleaned_num <- MLData2023_cleaned %>% 
-#   select_if(is.character) %>% 
-#   na.omit() %>% 
-#   mutate_all(as.numeric)
-
-# Convert specified columns to numeric and remove NAs
-MLData2023_cleaned_num <- MLData2023_cleaned %>%
-  select(c("Assembled.Payload.Size", "DYNRiskA.Score", "Response.Size", "Source.Ping.Time", "Connection.Rate", "Server.Response.Packet.Time", "Packet.Size", "Packet.TTL", "Source.IP.Concurrent.Connection", "Class")) %>%
-  na.omit() %>%
-  mutate_at(vars(-Class), as.numeric)
-
-# Combine the numeric columns with the non-numeric columns and the Class variable
-MLData2023_cleaned_num <- cbind(MLData2023_cleaned_num, 
-                                MLData2023_cleaned %>% select_if(is.numeric),
-                                Class = MLData2023_cleaned$Class)
-
 # Separate samples of non-malicious and malicious events 
 dat.class0 <- MLData2023_cleaned %>% filter(Class == 0) # non-malicious 
 dat.class1 <- MLData2023_cleaned %>% filter(Class == 1) # malicious 
 
 # Randomly select 19800 non-malicious and 200 malicious samples, then combine them to form the training samples 
-set.seed(10550239)
+set.seed(1234567)
 rows.train0 <- sample(1:nrow(dat.class0), size = 19800, replace = FALSE) 
 rows.train1 <- sample(1:nrow(dat.class1), size = 200, replace = FALSE) 
-
 # Your 20000 unbalanced training samples 
 train.class0 <- dat.class0[rows.train0,] # Non-malicious samples 
 train.class1 <- dat.class1[rows.train1,] # Malicious samples 
@@ -72,7 +55,7 @@ mydata.ub.train <- mydata.ub.train %>%
                                     mutate(Class = factor(Class, labels = c("NonMal","Mal")))
 
 # Your 39600 balanced training samples, i.e. 19800 non-malicious and malicious samples each.
-set.seed(10550239)
+set.seed(1234567)
 train.class1_2 <- train.class1[sample(1:nrow(train.class1), size = 19800, replace = TRUE),] 
 mydata.b.train <- rbind(train.class0, train.class1_2) 
 mydata.b.train <- mydata.b.train %>%         
@@ -86,7 +69,7 @@ mydata.test <- mydata.test %>%
                             mutate(Class = factor(Class, labels = c("NonMal","Mal")))
 
 # Randomly selected two supervised learning modelling algorithms to test against one another
-set.seed(10550239) 
+set.seed(1234567) 
 models.list1 <- c("Logistic Ridge Regression", "Logistic LASSO Regression", "Logistic Elastic-Net Regression") 
 models.list2 <- c("Classification Tree", "Bagging Tree", "Random Forest") 
 myModels <- c(sample(models.list1, size = 1), sample(models.list2, size = 1)) 
@@ -98,29 +81,28 @@ outcome <- "Class"
 
 # Remove rows with missing values
 mydata.ub.train_cleaned <- na.omit(mydata.ub.train)
-mydata.b.train_cleaned <- na.omit(mydata.b.train)
 sum(is.na(mydata.ub.train_cleaned))   # check missing values
-
 # Train logistic elastic-net regression model on unbalanced dataset
 model1_ub <- cv.glmnet(as.matrix(mydata.ub.train_cleaned[,predictors]), 
-                        as.factor(mydata.ub.train_cleaned[,outcome]), 
-                        family="binomial", alpha=0.5, na.action = "na.pass")
+                       as.factor(mydata.ub.train_cleaned[,outcome]), 
+                       family="binomial", alpha=0.5, na.action = "na.pass")
 
 # Train random forest model on unbalanced dataset
+model2_ub <- randomForest(as.factor(Class) ~ ., data=mydata.ub.train_cleaned[,c(predictors,outcome)])
+
 model2_ub <- randomForest(as.factor(mydata.ub.train_cleaned[,outcome]) ~ ., 
-                            data=mydata.ub.train_cleaned[,predictors], 
-                            ntree=500, mtry=3, na.action = "na.pass")
+                          data=mydata.ub.train_cleaned[,predictors], 
+                          ntree=500, mtry=3, na.action = "na.pass")
 
 # Train logistic elastic-net regression model on balanced dataset
-model1_b <- cv.glmnet(as.matrix(mydata.b.train_cleaned[,predictors]), 
-                        as.factor(mydata.b.train_cleaned[,outcome]), 
-                        family="binomial", alpha=0.5, na.action = "na.pass")
+model1_b <- cv.glmnet(as.matrix(mydata.b.train[,predictors]), 
+                      as.factor(mydata.b.train[,outcome]), 
+                      family="binomial", alpha=0.5, na.action = "na.pass")
 
 # Train random forest model on balanced dataset
-model2_b <- randomForest(as.factor(mydata.b.train_cleaned[,outcome]) ~ ., 
-                        data=mydata.b.train_cleaned[,predictors], 
-                        ntree=500, mtry=3, na.action = "na.pass")
-
+model2_b <- randomForest(as.factor(mydata.b.train[,outcome]) ~ ., 
+                         data=mydata.b.train[,predictors], 
+                         ntree=500, mtry=3, na.action = "na.pass")
 
 # Set up k-fold cross-validation with repeated measures
 k <- 10
@@ -129,12 +111,12 @@ mycontrol <- trainControl(method = "repeatedcv", number = k, repeats = n_repeats
 
 # Tune logistic elastic-net regression model
 grid1 <- expand.grid(alpha=seq(0,1,0.1), lambda=seq(0,1,0.1))
-set.seed(10550239)
+set.seed(1234567)
 model1_ub_tuned <- train(as.matrix(mydata.ub.train[,predictors]), as.factor(mydata.ub.train[,outcome]), method="glmnet", trControl=mycontrol, tuneGrid=grid1)
 
 # Tune random forest model
 grid2 <- expand.grid(ntree=c(100, 250, 500), mtry=c(2, 3, 4))
-set.seed(10550239)
+set.seed(1234567)
 model2_ub_tuned <- train(as.factor(mydata.ub.train[,outcome]) ~ ., data=mydata.ub.train[,predictors], method="rf", trControl=mycontrol, tuneGrid=grid2)
 
 # Generate predicted probabilities for logistic elastic-net regression model on unbalanced dataset
