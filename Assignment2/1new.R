@@ -34,7 +34,8 @@ MLData2023_filtered$Connection.State <- fct_collapse(MLData2023_filtered$Connect
 
 # Check which variables have missing values
 missing_values <- colSums(is.na(MLData2023_filtered))
-print(missing_values)
+# print(missing_values)
+cat(missing_values, sep = "\n")
 
 # Select only the complete cases and name the cleaned dataset as MLData2023_cleaned
 MLData2023_cleaned <- na.omit(MLData2023_filtered)
@@ -82,6 +83,7 @@ outcome <- "Class"
 # Remove rows with missing values
 mydata.ub.train_cleaned <- na.omit(mydata.ub.train)
 sum(is.na(mydata.ub.train_cleaned))   # check missing values
+
 # Train logistic elastic-net regression model on unbalanced dataset
 model1_ub <- cv.glmnet(as.matrix(mydata.ub.train_cleaned[,predictors]), 
                        as.factor(mydata.ub.train_cleaned[,outcome]), 

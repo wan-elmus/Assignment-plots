@@ -38,17 +38,11 @@ print(missing_values)
 # Select only the complete cases and name the cleaned dataset as MLData2023_cleaned
 MLData2023_cleaned <- na.omit(MLData2023_filtered)
 
-# # Convert characters to numeric and remove NAs
-# MLData2023_cleaned_num <- MLData2023_cleaned %>% 
-#   select_if(is.character) %>% 
-#   na.omit() %>% 
-#   mutate_all(as.numeric)
-
 # Convert specified columns to numeric and remove NAs
 MLData2023_cleaned_num <- MLData2023_cleaned %>%
-  select(c("Assembled.Payload.Size", "DYNRiskA.Score", "Response.Size", "Source.Ping.Time", "Connection.Rate", "Server.Response.Packet.Time", "Packet.Size", "Packet.TTL", "Source.IP.Concurrent.Connection", "Class")) %>%
-  na.omit() %>%
-  mutate_at(vars(-Class), as.numeric)
+select(c("Assembled.Payload.Size", "DYNRiskA.Score", "Response.Size", "Source.Ping.Time", "Connection.Rate", "Server.Response.Packet.Time", "Packet.Size", "Packet.TTL", "Source.IP.Concurrent.Connection")) %>%
+na.omit() %>%
+mutate_if(is.character, as.numeric)
 
 # Combine the numeric columns with the non-numeric columns and the Class variable
 MLData2023_cleaned_num <- cbind(MLData2023_cleaned_num, 
