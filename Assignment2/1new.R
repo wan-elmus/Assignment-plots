@@ -195,3 +195,16 @@ cat("Accuracy:", Acc2_b, "\n")
 cat("Precision:", Prec2_b, "\n")
 cat("Recall:", Rec2_b, "\n")
 cat("F1 score:", F2_b, "\n\n")
+
+
+
+
+
+
+
+MLData2023 <- MLData2023[, -c(6, 7)]
+# Remove the Operating System column
+MLData2023 <- subset(MLData2023, select = -Operating.System)
+
+# Run the model
+# cv.glmnet(x, y)

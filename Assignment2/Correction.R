@@ -27,16 +27,6 @@ MLData2023_filtered$Operating.System <- fct_collapse(MLData2023_filtered$Operati
                                                     Windows_All = c("Windows 7", "Windows 10+", "Windows (Unknown)"),
                                                     Others = c("-","Android","iOS", "Linux (unknown)"))
 
-# # Define os_mapping object
-# os_mapping <- c("-" = 1, "Windows 7" = 2, "Windows 10+" = 3, "Windows (Unknown)" = 4, 
-#                 "Android" = 5, "iOS" = 6, "Linux (unknown)" = 7)
-
-# # Merge the three Windows categories together to form a new category named Windows_All
-# # and merge iOS, Linux (Unknown), and Other to form the new category named Others
-# MLData2023_filtered$Operating.System <- fct_collapse(MLData2023_filtered$Operating.System,
-#                                                     Windows_All = c(os_mapping["Windows 7"], os_mapping["Windows 10+"], os_mapping["Windows (Unknown)"]),
-#                                                     Others = c(os_mapping["-"], os_mapping["Android"], os_mapping["iOS"], os_mapping["Linux (unknown)"]))
-
 
 # Merge INVALID, NEW, and RELATED to form the new category named Others for the feature Connection.State
 MLData2023_filtered$Connection.State <- fct_collapse(MLData2023_filtered$Connection.State,
@@ -115,14 +105,18 @@ sum(is.na(mydata.ub.train_cleaned))   # check missing values
 # Check the class of each column in the dataset
 sapply(mydata.ub.train_cleaned, class)
 
+# Define the character columns to be converted to numeric
+char_cols <- c("Assembled.Payload.Size", "DYNRiskA.Score", "Response.Size", "Source.Ping.Time", "Connection.Rate", "Server.Response.Packet.Time", "Packet.Size", "Packet.TTL", "Source.IP.Concurrent.Connection")
+
 # Convert character columns to numeric
-mydata.ub.train_cleaned <- apply(mydata.ub.train_cleaned, 2, function(x) {
+mydata.ub.train_cleaned[, char_cols] <- apply(mydata.ub.train_cleaned[, char_cols], 2, function(x) {
     if (is.character(x)) {
     as.numeric(x)
     } else {
     x
     }
 })
+
 
 # Train logistic elastic-net regression model on unbalanced dataset
 model1_ub <- cv.glmnet(as.matrix(mydata.ub.train_cleaned[,predictors]), 
@@ -135,8 +129,11 @@ model2_ub <- randomForest(as.factor(mydata.ub.train_cleaned[,outcome]) ~ .,
                             ntree=500, mtry=3, na.action = "na.pass")
 
 
+# Define the character columns to be converted to numeric
+char_cols1 <- c("Assembled.Payload.Size", "DYNRiskA.Score", "Response.Size", "Source.Ping.Time", "Connection.Rate", "Server.Response.Packet.Time", "Packet.Size", "Packet.TTL", "Source.IP.Concurrent.Connection")
+
 # Convert character columns to numeric
-mydata.b.train_cleaned <- apply(mydata.b.train_cleaned, 2, function(x) {
+mydata.b.train_cleaned[, char_cols1] <- apply(mydata.b.train_cleaned[, char_cols1], 2, function(x) {
     if (is.character(x)) {
     as.numeric(x)
     } else {
@@ -173,9 +170,6 @@ model2_ub_tuned <- train(as.factor(mydata.ub.train[,outcome]) ~ ., data=mydata.u
 pred1_ub <- predict(model1_ub, as.matrix(mydata.test[,predictors]), type="response")
 # Calculate AUC for logistic elastic-net regression model on unbalanced dataset
 auc1_ub <- roc(mydata.test[,outcome], pred1_ub)$auc
-
-# mydata.test <- as.data.frame(mydata.test)  # Convert to dataframe
-# sum(is.na(mydata.test))  # Count missing values
 
 # Generate predicted probabilities for random forest model on unbalanced dataset
 pred2_ub <- predict(model2_ub, newdata=mydata.test[,predictors], type="prob")[,2]
