@@ -19,8 +19,8 @@ MLData2023_filtered <- MLData2023 %>% filter(Class == 0 | Class == 1)
 
 MLData2023_filtered$Operating.System <- as.factor(MLData2023_filtered$Operating.System)
 
-# Check current levels of the Operating.System factor variable
-levels(MLData2023_filtered$Operating.System)
+# # Check current levels of the Operating.System factor variable
+# levels(MLData2023_filtered$Operating.System)
 
 # Merge the three Windows categories together to form a new category named Windows_All and to merge iOS, Linux (Unknown), and Other to form the new category named Others
 MLData2023_filtered$Operating.System <- fct_collapse(MLData2023_filtered$Operating.System,
@@ -32,9 +32,9 @@ MLData2023_filtered$Operating.System <- fct_collapse(MLData2023_filtered$Operati
 MLData2023_filtered$Connection.State <- fct_collapse(MLData2023_filtered$Connection.State,
                                                     Others = c("INVALID", "NEW", "RELATED"))
 
-# Check which variables have missing values
-missing_values <- colSums(is.na(MLData2023_filtered))
-print(missing_values)
+# # Check which variables have missing values
+# missing_values <- colSums(is.na(MLData2023_filtered))
+# print(missing_values)
 
 # Impute missing values using makeX() function with median imputation
 MLData2023_filtered <- makeX(MLData2023_filtered, method = "median")
@@ -44,17 +44,6 @@ MLData2023_cleaned <- na.omit(MLData2023_filtered)
 
 # Convert MLData2023_cleaned to a dataframe
 MLData2023_cleaned <- as.data.frame(MLData2023_cleaned)
-
-# Convert specified columns to numeric and remove NAs
-MLData2023_cleaned_num <- MLData2023_cleaned %>%
-select(c("Assembled.Payload.Size", "DYNRiskA.Score", "Response.Size", "Source.Ping.Time", "Connection.Rate", "Server.Response.Packet.Time", "Packet.Size", "Packet.TTL", "Source.IP.Concurrent.Connection")) %>%
-na.omit() %>%
-mutate_if(is.character, as.numeric)
-
-# Combine the numeric columns with the non-numeric columns and the Class variable
-MLData2023_cleaned_num <- cbind(MLData2023_cleaned_num, 
-                                MLData2023_cleaned %>% select_if(is.numeric),
-                                Class = MLData2023_cleaned$Class)
 
 # Separate samples of non-malicious and malicious events 
 dat.class0 <- MLData2023_cleaned %>% filter(Class == 0) # non-malicious 
@@ -93,17 +82,18 @@ models.list2 <- c("Classification Tree", "Bagging Tree", "Random Forest")
 myModels <- c(sample(models.list1, size = 1), sample(models.list2, size = 1)) 
 myModels %>% data.frame
 
-# Separate predictor and outcome variables
-predictors <- colnames(mydata.ub.train)[!colnames(mydata.ub.train) %in% c("Class")]
-outcome <- "Class"
-
 # Remove rows with missing values
 mydata.ub.train_cleaned <- na.omit(mydata.ub.train)
 mydata.b.train_cleaned <- na.omit(mydata.b.train)
 sum(is.na(mydata.ub.train_cleaned))   # check missing values
 
+# Separate predictor and outcome variables
+predictors <- colnames(mydata.ub.train_cleaned)[!colnames(mydata.ub.train_cleaned) %in% c("Class")]
+predictors1 <- colnames(mydata.b.train_cleaned)[!colnames(mydata.b.train_cleaned) %in% c("Class")]
+outcome <- "Class"
+
 # Check the class of each column in the dataset
-sapply(mydata.ub.train_cleaned, class)
+# sapply(mydata.ub.train_cleaned, class)
 
 # Define the character columns to be converted to numeric
 char_cols <- c("Assembled.Payload.Size", "DYNRiskA.Score", "Response.Size", "Source.Ping.Time", "Connection.Rate", "Server.Response.Packet.Time", "Packet.Size", "Packet.TTL", "Source.IP.Concurrent.Connection")
@@ -117,6 +107,8 @@ mydata.ub.train_cleaned[, char_cols] <- apply(mydata.ub.train_cleaned[, char_col
     }
 })
 
+# # Subset the data frame to only use the specified columns
+# mydata.ub.train_cleaned <- mydata.ub.train_cleaned[, char_cols]
 
 # Train logistic elastic-net regression model on unbalanced dataset
 model1_ub <- cv.glmnet(as.matrix(mydata.ub.train_cleaned[,predictors]), 
@@ -127,7 +119,6 @@ model1_ub <- cv.glmnet(as.matrix(mydata.ub.train_cleaned[,predictors]),
 model2_ub <- randomForest(as.factor(mydata.ub.train_cleaned[,outcome]) ~ ., 
                             data=mydata.ub.train_cleaned[,predictors], 
                             ntree=500, mtry=3, na.action = "na.pass")
-
 
 # Define the character columns to be converted to numeric
 char_cols1 <- c("Assembled.Payload.Size", "DYNRiskA.Score", "Response.Size", "Source.Ping.Time", "Connection.Rate", "Server.Response.Packet.Time", "Packet.Size", "Packet.TTL", "Source.IP.Concurrent.Connection")
@@ -141,14 +132,17 @@ mydata.b.train_cleaned[, char_cols1] <- apply(mydata.b.train_cleaned[, char_cols
     }
 })
 
+# # Subset the data frame to only use the specified columns
+# mydata.b.train_cleaned <- mydata.b.train_cleaned[, char_cols1]
+
 # Train logistic elastic-net regression model on balanced dataset
-model1_b <- cv.glmnet(as.matrix(mydata.b.train_cleaned[,predictors]), 
+model1_b <- cv.glmnet(as.matrix(mydata.b.train_cleaned[,predictors1]), 
                         as.factor(mydata.b.train_cleaned[,outcome]), 
                         alpha = 0.5, family = "binomial", nfolds = 5)
 
 # Train random forest model on balanced dataset
 model2_b <- randomForest(as.factor(mydata.b.train_cleaned[,outcome]) ~ ., 
-                        data=mydata.b.train_cleaned[,predictors], 
+                        data=mydata.b.train_cleaned[,predictors1], 
                         ntree=500, mtry=3, na.action = "na.pass")
 
 # Set up k-fold cross-validation with repeated measures
@@ -159,12 +153,20 @@ mycontrol <- trainControl(method = "repeatedcv", number = k, repeats = n_repeats
 # Tune logistic elastic-net regression model
 grid1 <- expand.grid(alpha=seq(0,1,0.1), lambda=seq(0,1,0.1))
 set.seed(10550239)
-model1_ub_tuned <- train(as.matrix(mydata.ub.train[,predictors]), as.factor(mydata.ub.train[,outcome]), method="glmnet", trControl=mycontrol, tuneGrid=grid1)
+model1_ub_tuned <- train(as.matrix(mydata.ub.train_cleaned[,predictors]), as.factor(mydata.ub.train_cleaned[,outcome]), method="glmnet", trControl=mycontrol, tuneGrid=grid1)
+
+grid1 <- expand.grid(alpha=seq(0,1,0.1), lambda=seq(0,1,0.1))
+set.seed(10550239)
+model1_b_tuned <- train(as.matrix(mydata.b.train_cleaned[,predictors]), as.factor(mydata.b.train_cleaned[,outcome]), method="glmnet", trControl=mycontrol, tuneGrid=grid1)
 
 # Tune random forest model
 grid2 <- expand.grid(ntree=c(100, 250, 500), mtry=c(2, 3, 4))
 set.seed(10550239)
-model2_ub_tuned <- train(as.factor(mydata.ub.train[,outcome]) ~ ., data=mydata.ub.train[,predictors], method="rf", trControl=mycontrol, tuneGrid=grid2)
+model2_ub_tuned <- train(as.factor(mydata.ub.train_cleaned[,outcome]) ~ ., data=mydata.ub.train_cleaned[,predictors], method="rf", trControl=mycontrol, tuneGrid=grid2)
+
+grid2 <- expand.grid(ntree=c(100, 250, 500), mtry=c(2, 3, 4))
+set.seed(10550239)
+model2_b_tuned <- train(as.factor(mydata.b.train_cleaned[,outcome]) ~ ., data=mydata.b.train_cleaned[,predictors], method="rf", trControl=mycontrol, tuneGrid=grid2)
 
 # Generate predicted probabilities for logistic elastic-net regression model on unbalanced dataset
 pred1_ub <- predict(model1_ub, as.matrix(mydata.test[,predictors]), type="response")
@@ -225,13 +227,13 @@ Rec2_b <- cm2_b[2,2] / sum(cm2_b[2,])
 F2_b <- 2 * (Prec2_b * Rec2_b) / (Prec2_b + Rec2_b)
 
 # Print results
-cat("\nModel 1 (balanced training set):\n")
-cat("False positive rate:", FP1_b, "\n")
-cat("False negative rate:", FN1_b, "\n")
-cat("Accuracy:", Acc1_b, "\n")
-cat("Precision:", Prec1_b, "\n")
-cat("Recall:", Rec1_b, "\n")
-cat("F1 score:", F1_b, "\n\n")
+cat("\nModel 1 (unbalanced training set):\n")
+cat("False positive rate:", FP1_ub, "\n")
+cat("False negative rate:", FN1_ub, "\n")
+cat("Accuracy:", Acc1_ub, "\n")
+cat("Precision:", Prec1_ub, "\n")
+cat("Recall:", Rec1_ub, "\n")
+cat("F1 score:", F1_ub, "\n\n")
 
 cat("Model 2 (balanced training set):\n")
 cat("False positive rate:", FP2_b, "\n")
@@ -240,3 +242,4 @@ cat("Accuracy:", Acc2_b, "\n")
 cat("Precision:", Prec2_b, "\n")
 cat("Recall:", Rec2_b, "\n")
 cat("F1 score:", F2_b, "\n\n")
+
